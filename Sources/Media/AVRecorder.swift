@@ -102,18 +102,20 @@ open class AVRecorder: NSObject {
     }
 
     func finishWriting() {
+        logger.info("try finishing writes \(String(writer!.outputURL.absoluteString))")
         guard let writer: AVAssetWriter = writer, writer.status == .writing else {
             return
         }
         for (_, input) in writerInputs {
             input.markAsFinished()
         }
-        writer.finishWriting {
-            self.delegate?.didFinishWriting(self)
-            self.writer = nil
-            self.writerInputs.removeAll()
-            self.pixelBufferAdaptor = nil
-        }
+        
+        writer.finishWriting {}
+        
+        self.delegate?.didFinishWriting(self)
+        self.writer = nil
+        self.writerInputs.removeAll()
+        self.pixelBufferAdaptor = nil
     }
 }
 

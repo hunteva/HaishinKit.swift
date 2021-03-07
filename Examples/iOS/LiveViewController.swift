@@ -7,20 +7,21 @@ import VideoToolbox
 final class ExampleRecorderDelegate: DefaultAVRecorderDelegate {
     static let `default` = ExampleRecorderDelegate()
 
-    override func didFinishWriting(_ recorder: AVRecorder) {
-        guard let writer: AVAssetWriter = recorder.writer else {
-            return
-        }
-        PHPhotoLibrary.shared().performChanges({() -> Void in
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: writer.outputURL)
-        }, completionHandler: { _, error -> Void in
-            do {
-                try FileManager.default.removeItem(at: writer.outputURL)
-            } catch {
-                print(error)
-            }
-        })
-    }
+//    override func didFinishWriting(_ recorder: AVRecorder) {
+//        guard let writer: AVAssetWriter = recorder.writer else {
+//            return
+//        }
+//        logger.info("finish writing", recorder.writer?.outputURL.absoluteString)
+//        PHPhotoLibrary.shared().performChanges({() -> Void in
+//            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: writer.outputURL)
+//        }, completionHandler: { _, error -> Void in
+//            do {
+//                try FileManager.default.removeItem(at: writer.outputURL)
+//            } catch {
+//                print(error)
+//            }
+//        })
+//    }
 }
 
 final class LiveViewController: UIViewController {
@@ -62,8 +63,8 @@ final class LiveViewController: UIViewController {
             .width: 720,
             .height: 1280
         ]
-        rtmpStream.mixer.recorder.delegate = ExampleRecorderDelegate.shared
-
+        rtmpStream.mixer.recorder.delegate = ExampleRecorderDelegate.default
+        ExampleRecorderDelegate.default.duration = 5
         videoBitrateSlider?.value = Float(RTMPStream.defaultVideoBitrate) / 1000
         audioBitrateSlider?.value = Float(RTMPStream.defaultAudioBitrate) / 1000
 
@@ -156,7 +157,7 @@ final class LiveViewController: UIViewController {
         switch code {
         case RTMPConnection.Code.connectSuccess.rawValue:
             retryCount = 0
-            rtmpStream!.publish(Preference.defaultInstance.streamName!)
+            rtmpStream!.publish(Preference.defaultInstance.streamName!, type: .localRecord)
             // sharedObject!.connect(rtmpConnection)
         case RTMPConnection.Code.connectFailed.rawValue, RTMPConnection.Code.connectClosed.rawValue:
             guard retryCount <= LiveViewController.maxRetryCount else {
