@@ -110,8 +110,7 @@ open class AVRecorder: NSObject {
             input.markAsFinished()
         }
         
-        writer.finishWriting {}
-        
+        writer.finishWriting{}
         self.delegate?.didFinishWriting(self)
         self.writer = nil
         self.writerInputs.removeAll()
@@ -169,10 +168,12 @@ open class DefaultAVRecorderDelegate: NSObject {
     }
 
     public static let shared = DefaultAVRecorderDelegate()
-
+    open var rotateCount = 0;
     open var duration: Int64 = 0
-    open var dateFormat: String = "-yyyyMMdd-HHmmss"
-
+    open var folder: String? = nil
+//    open var dateFormat: String = "-yyyyMMdd-HHmmss"
+    var numberFormatter = NumberFormatter();
+    
     private var rotateTime = CMTime.zero
     private var clockReference: AVMediaType = .video
     public private(set) var fileType: FileType
@@ -180,6 +181,9 @@ open class DefaultAVRecorderDelegate: NSObject {
     #if os(iOS)
     open lazy var moviesDirectory: URL = {
         URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])
+    }()
+    open lazy var moviesDir: URL = {
+        URL(string: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])!
     }()
     #else
     open lazy var moviesDirectory: URL = {
@@ -190,6 +194,7 @@ open class DefaultAVRecorderDelegate: NSObject {
     public init(fileType: FileType = .mp4)
     {
         self.fileType = fileType
+        numberFormatter.minimumIntegerDigits = 4
     }
 }
 
@@ -203,6 +208,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
         if recorder.writer != nil {
             recorder.finishWriting()
         }
+        
         recorder.writer = createWriter(recorder.fileName)
         rotateTime = CMTimeAdd(
             withPresentationTimeStamp,
@@ -278,6 +284,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
     }
 
     open func didStartRunning(_ recorder: AVRecorder) {
+        rotateCount = 0
     }
 
     open func didStopRunning(_ recorder: AVRecorder) {
@@ -286,19 +293,30 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
 
     func createWriter(_ fileName: String?) -> AVAssetWriter? {
         do {
-            let dateFormatter = DateFormatter()
-            dateFormatter.locale = Locale(identifier: "en_US")
-            dateFormatter.dateFormat = dateFormat
+            self.rotateCount += 1
             var fileComponent: String?
             if var fileName: String = fileName {
                 if let q: String.Index = fileName.firstIndex(of: "?") {
                     fileName.removeSubrange(q..<fileName.endIndex)
                 }
-                fileComponent = fileName + dateFormatter.string(from: Date())
+                fileComponent = fileName + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
             }
-            let url: URL = moviesDirectory.appendingPathComponent((fileComponent ?? UUID().uuidString) + fileType.fileExtension)
-            logger.info("\(url)")
-            return try AVAssetWriter(outputURL: url, fileType: fileType.AVFileType)
+            var url: URL? = nil
+            if folder != nil {
+                do {
+                    url = moviesDirectory.appendingPathComponent(folder! + "/" + (fileComponent ?? UUID().uuidString) + fileType.fileExtension)
+                    let folderPath = moviesDir.appendingPathComponent(folder!).absoluteString
+                    print("Folder path: \(folderPath)")
+                    try FileManager.default.createDirectory(atPath: folderPath, withIntermediateDirectories: true, attributes: nil)
+                } catch {
+                    logger.error("Create folder error, \(error)")
+                }
+            } else {
+                url = moviesDirectory.appendingPathComponent((fileComponent ?? UUID().uuidString) + fileType.fileExtension)
+            }
+            
+            logger.info("\(url!)")
+            return try AVAssetWriter(outputURL: url!, fileType: fileType.AVFileType)
         } catch {
             logger.warn("create an AVAssetWriter")
         }

@@ -420,6 +420,7 @@ open class RTMPStream: NetStream {
             while self.readyState == .initialized && !self.isBeingClosed {
                 usleep(100)
             }
+            
 
             if self.info.resourceName == name && self.readyState == .publishing {
                 switch type {
@@ -432,7 +433,7 @@ open class RTMPStream: NetStream {
                 self.howToPublish = type
                 return
             }
-
+            
             self.info.resourceName = name
             self.howToPublish = type
             self.readyState = .publish
