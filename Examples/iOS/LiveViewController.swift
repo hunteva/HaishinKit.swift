@@ -155,11 +155,12 @@ final class LiveViewController: UIViewController {
         guard let data: ASObject = e.data as? ASObject, let code: String = data["code"] as? String else {
             return
         }
-        logger.info(code)
+
+        logger.info(data)
         switch code {
         case RTMPConnection.Code.connectSuccess.rawValue:
             retryCount = 0
-            rtmpStream!.publish("eventId", type: .localRecord)
+            rtmpStream!.publish("record/eventId", type: .localRecord)
             // sharedObject!.connect(rtmpConnection)
         case RTMPConnection.Code.connectFailed.rawValue, RTMPConnection.Code.connectClosed.rawValue:
             guard retryCount <= LiveViewController.maxRetryCount else {

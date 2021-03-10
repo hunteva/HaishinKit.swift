@@ -28,6 +28,7 @@ open class AVRecorder: NSObject {
 
     open var writer: AVAssetWriter?
     open var fileName: String?
+    open var eventId: String?
     open weak var delegate: AVRecorderDelegate? = DefaultAVRecorderDelegate.shared
     open var writerInputs: [AVMediaType: AVAssetWriterInput] = [:]
     open var outputSettings: [AVMediaType: [String: Any]] = AVRecorder.defaultOutputSettings
@@ -102,7 +103,6 @@ open class AVRecorder: NSObject {
     }
 
     func finishWriting() {
-        logger.info("try finishing writes \(String(writer!.outputURL.absoluteString))")
         guard let writer: AVAssetWriter = writer, writer.status == .writing else {
             return
         }
@@ -170,7 +170,7 @@ open class DefaultAVRecorderDelegate: NSObject {
     public static let shared = DefaultAVRecorderDelegate()
     open var rotateCount = 0;
     open var duration: Int64 = 0
-    open var folder: String? = nil
+    open var eventId: String? = nil
 //    open var dateFormat: String = "-yyyyMMdd-HHmmss"
     var numberFormatter = NumberFormatter();
     
@@ -295,17 +295,17 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
         do {
             self.rotateCount += 1
             var fileComponent: String?
-            if var fileName: String = fileName {
-                if let q: String.Index = fileName.firstIndex(of: "?") {
-                    fileName.removeSubrange(q..<fileName.endIndex)
+            if var eventId: String = eventId {
+                if let q: String.Index = eventId.firstIndex(of: "?") {
+                    eventId.removeSubrange(q..<eventId.endIndex)
                 }
-                fileComponent = fileName + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
+                fileComponent = eventId + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
             }
             var url: URL? = nil
-            if folder != nil {
+            if eventId != nil {
                 do {
-                    url = moviesDirectory.appendingPathComponent(folder! + "/" + (fileComponent ?? UUID().uuidString) + fileType.fileExtension)
-                    let folderPath = moviesDir.appendingPathComponent(folder!).absoluteString
+                    url = moviesDirectory.appendingPathComponent(eventId! + "/" + (fileComponent ?? UUID().uuidString) + fileType.fileExtension)
+                    let folderPath = moviesDir.appendingPathComponent(eventId!).absoluteString
                     print("Folder path: \(folderPath)")
                     try FileManager.default.createDirectory(atPath: folderPath, withIntermediateDirectories: true, attributes: nil)
                 } catch {
