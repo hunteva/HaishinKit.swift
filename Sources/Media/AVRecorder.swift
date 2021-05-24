@@ -108,14 +108,11 @@ open class AVRecorder: NSObject {
         for (_, input) in writerInputs {
             input.markAsFinished()
         }
-        print("before delete writer \(writer.outputURL.absoluteString)")
-        writer.finishWriting {
-            self.delegate?.didFinishWriting(self)
-            print("deleting writer \(writer.outputURL.absoluteString)")
-            self.writer = nil
-            self.writerInputs.removeAll()
-            self.pixelBufferAdaptor = nil
-        }
+        writer.finishWriting {}
+        self.delegate?.didFinishWriting(self)
+        self.writer = nil
+        self.writerInputs.removeAll()
+        self.pixelBufferAdaptor = nil
     }
 }
 
