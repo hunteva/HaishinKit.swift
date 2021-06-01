@@ -28,6 +28,7 @@ open class AVRecorder: NSObject {
 
     open var writer: AVAssetWriter?
     open var fileName: String?
+    open var eventId: String?
     open weak var delegate: AVRecorderDelegate? = DefaultAVRecorderDelegate.shared
     open var writerInputs: [AVMediaType: AVAssetWriterInput] = [:]
     open var outputSettings: [AVMediaType: [String: Any]] = AVRecorder.defaultOutputSettings
@@ -108,7 +109,7 @@ open class AVRecorder: NSObject {
         for (_, input) in writerInputs {
             input.markAsFinished()
         }
-        writer.finishWriting {}
+        writer.finishWriting{}
         self.delegate?.didFinishWriting(self)
         self.writer = nil
         self.writerInputs.removeAll()
@@ -167,8 +168,12 @@ open class DefaultAVRecorderDelegate: NSObject {
 
     public static let shared = DefaultAVRecorderDelegate()
 
+    open var rotateCount = 0;
     open var duration: Int64 = 0
-    open var dateFormat: String = "-yyyyMMdd-HHmmss"
+    open var eventId: String? = nil
+//    open var dateFormat: String = "-yyyyMMdd-HHmmss"
+    var numberFormatter = NumberFormatter();
+
 
     private var rotateTime = CMTime.zero
     private var clockReference: AVMediaType = .video
@@ -177,6 +182,9 @@ open class DefaultAVRecorderDelegate: NSObject {
     #if os(iOS)
     open lazy var moviesDirectory: URL = {
         URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])
+    }()
+    open lazy var moviesDir: URL = {
+        URL(string: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])!
     }()
     #else
     open lazy var moviesDirectory: URL = {
@@ -187,6 +195,7 @@ open class DefaultAVRecorderDelegate: NSObject {
     public init(fileType: FileType = .mp4)
     {
         self.fileType = fileType
+        numberFormatter.minimumIntegerDigits = 4
     }
 }
 
@@ -274,6 +283,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
     }
 
     open func didStartRunning(_ recorder: AVRecorder) {
+        rotateCount = -1
     }
 
     open func didStopRunning(_ recorder: AVRecorder) {
@@ -282,19 +292,29 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
 
     func createWriter(_ fileName: String?) -> AVAssetWriter? {
         do {
-            let dateFormatter = DateFormatter()
-            dateFormatter.locale = Locale(identifier: "en_US")
-            dateFormatter.dateFormat = dateFormat
+            self.rotateCount += 1
             var fileComponent: String?
-            if var fileName: String = fileName {
-                if let q: String.Index = fileName.firstIndex(of: "?") {
-                    fileName.removeSubrange(q..<fileName.endIndex)
+            if var eventId: String = eventId {
+                if let q: String.Index = eventId.firstIndex(of: "?") {
+                    eventId.removeSubrange(q..<eventId.endIndex)
                 }
-                fileComponent = fileName + dateFormatter.string(from: Date())
+                fileComponent = eventId + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
             }
-            let url: URL = moviesDirectory.appendingPathComponent((fileComponent ?? UUID().uuidString) + fileType.fileExtension)
-//            logger.info("\(url)")
-            return try AVAssetWriter(outputURL: url, fileType: fileType.AVFileType)
+            var url: URL? = nil
+            if eventId != nil {
+                do {
+                    url = moviesDirectory.appendingPathComponent("recordings/" + eventId! + "/" + (fileComponent ?? UUID().uuidString) + fileType.fileExtension)
+                    let folderPath = moviesDir.appendingPathComponent("recordings/" + eventId!).absoluteString
+                    // print("Folder path: \(folderPath)")
+                    try FileManager.default.createDirectory(atPath: folderPath, withIntermediateDirectories: true, attributes: nil)
+                } catch {
+                    logger.error("Create folder error, \(error)")
+                }
+            } else {
+                url = moviesDirectory.appendingPathComponent((fileComponent ?? UUID().uuidString) + fileType.fileExtension)
+            }
+            logger.info("\(url!)")
+            return try AVAssetWriter(outputURL: url!, fileType: fileType.AVFileType)
         } catch {
             logger.warn("create an AVAssetWriter")
         }
