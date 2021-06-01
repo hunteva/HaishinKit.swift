@@ -167,7 +167,7 @@ open class DefaultAVRecorderDelegate: NSObject {
     }
 
     public static let shared = DefaultAVRecorderDelegate()
-
+    open var startedAt: Double = 0;
     open var rotateCount = 0;
     open var duration: Int64 = 0
     open var eventId: String? = nil
@@ -284,6 +284,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
 
     open func didStartRunning(_ recorder: AVRecorder) {
         rotateCount = -1
+        startedAt = NSDate().timeIntervalSince1970 * 1000;
     }
 
     open func didStopRunning(_ recorder: AVRecorder) {
@@ -298,7 +299,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
                 if let q: String.Index = eventId.firstIndex(of: "?") {
                     eventId.removeSubrange(q..<eventId.endIndex)
                 }
-                fileComponent = eventId + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
+                fileComponent = eventId + "_" + String(format: "%.0f", startedAt) + "_\(numberFormatter.string(from: NSNumber(value: self.rotateCount))!)"
             }
             var url: URL? = nil
             if eventId != nil {
@@ -313,6 +314,7 @@ extension DefaultAVRecorderDelegate: AVRecorderDelegate {
             } else {
                 url = moviesDirectory.appendingPathComponent((fileComponent ?? UUID().uuidString) + fileType.fileExtension)
             }
+            logger.info("eventId: \(eventId)")
             logger.info("\(url!)")
             return try AVAssetWriter(outputURL: url!, fileType: fileType.AVFileType)
         } catch {
