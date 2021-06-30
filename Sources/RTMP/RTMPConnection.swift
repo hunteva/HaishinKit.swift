@@ -300,8 +300,12 @@ open class RTMPConnection: EventDispatcher {
     open func close() {
         close(isDisconnected: false, keepRecording: false)
     }
+    
+    open func closeImmediately() {
+        close(isDisconnected: false, keepRecording: false, immediate: true)
+    }
 
-    func close(isDisconnected: Bool, keepRecording: Bool = false) {
+    func close(isDisconnected: Bool, keepRecording: Bool = false, immediate: Bool = false) {
         guard connected || isDisconnected else {
             timer = nil
             return
@@ -311,7 +315,7 @@ open class RTMPConnection: EventDispatcher {
             uri = nil
         }
         for (_, stream) in streams {
-            stream.close(keepRecording: keepRecording)
+            stream.close(keepRecording: keepRecording, immediate: immediate)
         }
         socket.close(isDisconnected: false)
         streams.removeAll()

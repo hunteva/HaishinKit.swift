@@ -388,9 +388,9 @@ open class RTMPStream: NetStream {
     open func close() {
         close(withLockQueue: true)
     }
-    open func close(keepRecording: Bool = false) {
+    open func close(keepRecording: Bool = false, immediate: Bool = false) {
         self.keepRecording = keepRecording;
-        close(withLockQueue: true);
+        close(withLockQueue: !immediate);
     }
 
     /// Sends a message on a published stream to all subscribing clients.
@@ -438,6 +438,7 @@ open class RTMPStream: NetStream {
             return
         }
         readyState = .open
+        logger.info("Stream Closing, change readyState to \(readyState)")
         rtmpConnection.socket?.doOutput(chunk: RTMPChunk(
             type: .zero,
             streamId: RTMPChunk.StreamID.command.rawValue,
