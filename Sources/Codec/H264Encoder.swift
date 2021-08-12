@@ -121,7 +121,7 @@ public final class H264Encoder {
             guard bitrate != oldValue else {
                 return
             }
-            setProperty(kVTCompressionPropertyKey_AverageBitRate, Int(bitrate) as CFTypeRef)
+            setProperty(kVTCompressionPropertyKey_DataRateLimits, Int(bitrate) as CFTypeRef)
         }
     }
     var profileLevel: String = kVTProfileLevel_H264_Baseline_3_1 as String {
