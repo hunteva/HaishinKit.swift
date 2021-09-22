@@ -76,16 +76,25 @@ open class NetSocket: NSObject {
     @discardableResult
     public func doOutput(data: Data, locked: UnsafeMutablePointer<UInt32>? = nil) -> Int {
         queueBytesOut.mutate { $0 += Int64(data.count) }
+        logger.info("Queued bytes:", queueBytesOut.value);
+        
         outputQueue.async { [weak self] in
             guard let self = self else {
                 return
             }
+          
+          if (self.queueBytesOut.value < 819200) {
             self.outputBuffer.append(data, locked: locked)
-            if let outputStream = self.outputStream, outputStream.hasSpaceAvailable {
-                self.doOutput(outputStream)
-            }
+          } else {
+            logger.info("pause adding data to outputBuffer, discard: ", data.count);
+            self.queueBytesOut.mutate { $0 -= Int64(data.count) }
+          }
+          
+          if let outputStream = self.outputStream, outputStream.hasSpaceAvailable {
+              self.doOutput(outputStream)
+          }
         }
-        return data.count
+        return data.count;
     }
 
     open func close() {
@@ -151,6 +160,7 @@ open class NetSocket: NSObject {
             return
         }
         let length = outputStream.write(bytes, maxLength: outputBuffer.maxLength)
+        logger.info("drain outputBuffer: ", length)
         if 0 < length {
             totalBytesOut.mutate { $0 += Int64(length) }
             queueBytesOut.mutate { $0 -= Int64(length) }
